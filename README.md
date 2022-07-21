@@ -11,6 +11,7 @@ git clone https://github.com/naveensaigit/component-analyzer --recurse-submodule
 
 Install the dependencies for all the submodules
 ```sh
+cd component-analyzer
 chmod +x install.sh
 ./install.sh
 ```
@@ -18,5 +19,10 @@ chmod +x install.sh
 Install `component-analyzer` as a dependency in your React repo
 ```sh
 cd /path/to/repo
-npm link /path/to/component-analyzer
+sudo npm link /path/to/component-analyzer
 ```
+
+Add the following command to your `package.json` in the `scripts` section
+`"analyze": "component-analyzer"`
+
+Execute `npm run analyze` to get the renderTree file.
