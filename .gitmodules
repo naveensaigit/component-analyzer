@@ -1,0 +1,9 @@
+[submodule "advanced-bundle-analyzer"]
+	path = advanced-bundle-analyzer
+	url = https://github.com/naveensaigit/advanced-bundle-analyzer
+[submodule "advanced_bundle_analyzer_ui"]
+	path = advanced_bundle_analyzer_ui
+	url = https://github.com/AnkitGhildiyal2001/advanced_bundle_analyzer_ui
+[submodule "react"]
+	path = react
+	url = https://github.com/naveensaigit/react
