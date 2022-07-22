@@ -13,7 +13,11 @@ cd ../../../advanced-bundle-analyzer
 yarn
 tsc
 # Link the local react-devtools
-sudo npm link ../react/packages/react-devtools
+if [[ "$OSTYPE" == "msys"* ]]; then
+  npm link ../react/packages/react-devtools
+else
+  sudo npm link ../react/packages/react-devtools
+fi
 
 # Setup bundle analyzer UI
 cd ../advanced_bundle_analyzer_ui

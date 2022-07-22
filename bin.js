@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { execSync, exec } = require('child_process');
+const { spawn, exec } = require('child_process');
 const { platform } = require('node:process');
 const fs = require('fs');
 const path = require('path');
@@ -16,22 +16,27 @@ function runAnalyzer() {
   if(fs.existsSync("renderTree.json"))
     fs.unlinkSync("renderTree.json");
 
-  const noBrowser = getEnvString("BROWSER", "none");
-  exec(`${noBrowser} npm start`, _ => console.log("App started!"));
+  const startApp = spawn('npm', ['start'], {
+    env: {
+      ...process.env,
+      BROWSER: 'none'
+    }
+  });
 
   const treePath = getEnvString("TREEPATH", path.resolve());
-  exec(`cd ${analyzerPath} && ${treePath} npm run devtools`, err => {
+  exec(`cd "${analyzerPath}" && ${treePath} npm run devtools`, err => {
     if(err)
       console.log("Failed to run React DevTools!");
     else
       console.log("DevTools exited successfully");
   });
 
-  exec(`cd ${analyzerPath} && ${treePath} npm run puppeteer`, err => {
+  exec(`cd "${analyzerPath}" && ${treePath} npm run puppeteer`, err => {
     if(err)
       console.log("Failed to run Puppeteer!", err);
     else {
       console.log("Headless browser exited successfully");
+      startApp.kill("SIGKILL");
       setTimeout(startDataGen, 500);
     }
   });
@@ -39,13 +44,14 @@ function runAnalyzer() {
 
 function startDataGen() {
   const dataGenPath = path.join(analyzerPath, "js-build/DataGenerator.js");
-  const dataGenRelPath = path.relative(".", dataGenPath);
   const outputPath = path.join(uiPath, "src/components/data.json");
 
-  exec(`node ${dataGenRelPath} renderTree.json ${outputPath}`, err => {
+  console.log(`node "${dataGenPath}" "renderTree.json" "${outputPath}"`);
+  exec(`node "${dataGenPath}" "renderTree.json" "${outputPath}"`, err => {
     if(err)
       console.log("Failed to generate data.json");
-    // Start UI app
+    else
+      setTimeout(() => {const startUI = spawn('npm', ['run', 'dev'], {cwd: uiPath})}, 2000);
   });
 }
 
