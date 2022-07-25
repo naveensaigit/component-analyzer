@@ -19,7 +19,7 @@ chmod +x install.sh
 Install `component-analyzer` as a dependency in your React repo
 ```sh
 cd /path/to/repo
-sudo npm link /path/to/component-analyzer # omit sudo if you Windows
+sudo npm link /path/to/component-analyzer # omit sudo if you're on Windows
 ```
 
 Add the following command to your `package.json` in the `scripts` section
@@ -27,9 +27,9 @@ Add the following command to your `package.json` in the `scripts` section
 "analyze": "component-analyzer"
 ```
 
-Add the following line of code to your `index.html` file  in the `head` section.
+Add the following line of code to your `index.html` file in the beginning of the `head` section.
 ```sh
-<script src="http://192.168.29.20:8097"></script>
+<script src="http://localhost:8097"></script>
 ```
 
 Execute `npm run analyze` to get the renderTree file.
