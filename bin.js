@@ -1,63 +1,148 @@
 #!/usr/bin/env node
 
-const { spawn, exec } = require('child_process');
-const { platform } = require('node:process');
+const { exec } = require('child_process');
+const { platform, exit } = require('node:process');
 const fs = require('fs');
 const path = require('path');
 
 const analyzerPath = path.join(__dirname, "advanced-bundle-analyzer");
 const uiPath = path.join(__dirname, "advanced_bundle_analyzer_ui");
 
-function getEnvString(env, value) {
-  return (platform === "win32") ? `set ${env}=${value} &&` : `${env}=${value}`;
+const configStr =
+`{
+  /* Webapp */
+  "appStart": "npm start",                      /* Command to be executed to start your webapp */
+
+  /* Render Tree */
+  "renderTreeFile": "renderTree.json",          /* Name of the file containing information about render tree */
+  "refreshConnection": 50,                      /* Time (in ms) before retrying to connect to DevTools or webapp */
+  "checkFile": 1000,                            /* Time interval (in ms) to check if render tree has been extracted and saved */
+  "renderTreeWait": 1000,                       /* Time (in ms) after which DevTools is initialized and render tree must be extracted */
+
+  /* Data Generation and Suggestions UI */
+  "analyzeRoute": "http://localhost:3000",      /* Route that is to be analyzed */
+  "dataGenWait": 500,                           /* Time (in ms) after which render tree is extracted and data.json must be prepared */
+  "uiPort": 4242,                               /* Port number on which suggestions UI will be run */
+  "openUI": true                                /* Opens Suggestion UI in browser */
+}`
+
+const removeComments = (str) => str.replace(/([^:]\/\/.*|\/\*((.|\r\n|\s)*?)\*\/)/gm, "");
+
+const strToConf = (str) => JSON.parse(removeComments(str));
+
+const runAnalyzer = (config) => {
+  if(fs.existsSync(config.renderTreeFile))
+    fs.unlinkSync(config.renderTreeFile);
+
+  console.log("Starting webapp...\n");
+  exec(config.appStart,
+    {
+      env: {
+        ...process.env,
+        BROWSER: 'none'
+      },
+      shell: true
+    }
+  );
+
+  console.log("Starting DevTools in Headless Mode...");
+  exec("npm run devtools",
+    {
+      cwd: analyzerPath,
+      env: {
+        ...process.env,
+        RENDER_TREE_PATH: path.resolve(),
+        RENDER_TREE_FILE: config.renderTreeFile,
+        RENDER_TREE_WAIT: config.renderTreeWait
+      },
+      shell: true
+    },
+    err => {
+      if(err) {
+        console.log("Failed to run React DevTools:", err);
+        exit(1);
+      }
+      else
+        console.log("DevTools exited successfully!");
+    }
+  );
+
+  console.log("Starting Puppeteer in Headless Mode...");
+  exec("npm run puppeteer",
+    {
+      cwd: analyzerPath,
+      env: {
+        ...process.env,
+        RENDER_TREE_PATH: path.resolve(),
+        RENDER_TREE_FILE: config.renderTreeFile,
+        ANALYZE_ROUTE: config.analyzeRoute,
+        REFRESH_CONN: config.refreshConnection
+      },
+      shell: true
+    },
+    err => {
+      if(err) {
+        console.log("Failed to run Puppeteer:", err);
+        exit(1);
+      }
+      else {
+        console.log("Puppeteer exited successfully!");
+        setTimeout(() => startDataGen(config), config.dataGenWait);
+      }
+    }
+  );
 }
 
-function runAnalyzer() {
-  if(fs.existsSync("renderTree.json"))
-    fs.unlinkSync("renderTree.json");
-
-  const startApp = spawn('npm', ['start'], {
-    env: {
-      ...process.env,
-      BROWSER: 'none'
-    }
-  });
-
-  const treePath = getEnvString("TREEPATH", path.resolve());
-  exec(`cd "${analyzerPath}" && ${treePath} npm run devtools`, err => {
-    if(err)
-      console.log("Failed to run React DevTools!");
-    else
-      console.log("DevTools exited successfully");
-  });
-
-  exec(`cd "${analyzerPath}" && ${treePath} npm run puppeteer`, err => {
-    if(err)
-      console.log("Failed to run Puppeteer!", err);
-    else {
-      console.log("Headless browser exited successfully");
-      startApp.kill("SIGKILL");
-      setTimeout(startDataGen, 500);
-    }
-  });
-}
-
-function startDataGen() {
+const startDataGen = (config) => {
   const dataGenPath = path.join(analyzerPath, "js-build/DataGenerator.js");
   const outputPath = path.join(uiPath, "src/components/data.json");
 
-  console.log(`node "${dataGenPath}" "renderTree.json" "${outputPath}"`);
-  exec(`node "${dataGenPath}" "renderTree.json" "${outputPath}"`, err => {
-    if(err)
-      console.log("Failed to generate data.json");
-    else
-      setTimeout(() => {const startUI = spawn('npm', ['run', 'dev'], {cwd: uiPath})}, 2000);
+  console.log("\nPreparing data.json...")
+  exec(`node "${dataGenPath}" "${config.renderTreeFile}" "${outputPath}"`, err => {
+    if(err) {
+      console.log("Failed to generate data.json:", err);
+      exit(1);
+    }
+    else {
+      console.log("data.json ready! Starting Suggestions UI...");
+      exec(`npm run dev -- -p ${config.uiPort}`,
+        {
+          cwd: uiPath,
+          shell: true
+        }
+      );
+
+      setTimeout(() => {
+        if(config.openUI) {
+          const startCmd = (platform == 'darwin'? 'open': platform == 'win32'? 'start': 'xdg-open');
+          exec(`${startCmd} http://localhost:${config.uiPort}/browse`);
+        }
+        console.log(`\nView suggestions for your webapp here: http://localhost:${config.uiPort}/browse`);
+      }, 1000);
+    }
   });
 }
 
-fs.exists("component-analyzer.json", exists => {
-  if(exists)
-    runAnalyzer();
-  else
-    console.log("component-analyzer.json file not found. Exiting!");
+fs.exists("analyzerConfig.json", exists => {
+  let config = strToConf(configStr);
+
+  if(exists) {
+    try {
+      let parsedConfigStr = fs.readFileSync("analyzerConfig.json").toString();
+      let parsedConfig = strToConf(parsedConfigStr);
+      for(let prop in parsedConfig)
+        if(config[prop])
+          config[prop] = parsedConfig[prop];
+      console.log("Parsed config file successfully!");
+    }
+    catch(err) {
+      console.log("Error parsing config file:", err);
+      exit(1);
+    }
+  }
+  else {
+    console.log("Config file not found. Creating a default config file");
+    fs.writeFileSync("analyzerConfig.json", configStr);
+  }
+  runAnalyzer(config);
 });
