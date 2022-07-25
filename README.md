@@ -27,4 +27,9 @@ Add the following command to your `package.json` in the `scripts` section
 "analyze": "component-analyzer"
 ```
 
+Add the following line of code to your `index.html` file  in the `head` section.
+```sh
+<script src="http://192.168.29.20:8097"></script>
+```
+
 Execute `npm run analyze` to get the renderTree file.
