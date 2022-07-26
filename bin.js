@@ -10,14 +10,15 @@ const uiPath = path.join(__dirname, "advanced_bundle_analyzer_ui");
 
 const configStr =
 `{
-  /* Webapp */
-  "appStart": "npm start",                      /* Command to be executed to start your webapp */
+  /* General */
+  "devToolsHeadless": true,                     /* Run DevTools in Headless mode */
 
   /* Render Tree */
   "renderTreeFile": "renderTree.json",          /* Name of the file containing information about render tree */
   "refreshConnection": 50,                      /* Time (in ms) before retrying to connect to DevTools or webapp */
   "checkFile": 1000,                            /* Time interval (in ms) to check if render tree has been extracted and saved */
   "renderTreeWait": 1000,                       /* Time (in ms) after which DevTools is initialized and render tree must be extracted */
+  "updateFilters": 1000,                        /* Time (in ms) to wait for DevTools to filter out unnecessary components */
 
   /* Data Generation and Suggestions UI */
   "analyzeRoute": "http://localhost:3000",      /* Route that is to be analyzed */
@@ -34,16 +35,16 @@ const runAnalyzer = (config) => {
   if(fs.existsSync(config.renderTreeFile))
     fs.unlinkSync(config.renderTreeFile);
 
-  console.log("Starting webapp...\n");
-  exec(config.appStart,
-    {
-      env: {
-        ...process.env,
-        BROWSER: 'none'
-      },
-      shell: true
-    }
-  );
+  // console.log("Starting webapp...\n");
+  // exec(config.appStart,
+  //   {
+  //     env: {
+  //       ...process.env,
+  //       BROWSER: 'none'
+  //     },
+  //     shell: true
+  //   }
+  // );
 
   console.log("Starting DevTools in Headless Mode...");
   exec("npm run devtools",
@@ -53,7 +54,9 @@ const runAnalyzer = (config) => {
         ...process.env,
         RENDER_TREE_PATH: path.resolve(),
         RENDER_TREE_FILE: config.renderTreeFile,
-        RENDER_TREE_WAIT: config.renderTreeWait
+        RENDER_TREE_WAIT: config.renderTreeWait,
+        DEVTOOLS_HEADLESS: config.devToolsHeadless,
+        UPDATE_FILTERS: config.updateFilters
       },
       shell: true
     },
@@ -67,30 +70,31 @@ const runAnalyzer = (config) => {
     }
   );
 
-  console.log("Starting Puppeteer in Headless Mode...");
-  exec("npm run puppeteer",
-    {
-      cwd: analyzerPath,
-      env: {
-        ...process.env,
-        RENDER_TREE_PATH: path.resolve(),
-        RENDER_TREE_FILE: config.renderTreeFile,
-        ANALYZE_ROUTE: config.analyzeRoute,
-        REFRESH_CONN: config.refreshConnection
-      },
-      shell: true
-    },
-    err => {
-      if(err) {
-        console.log("Failed to run Puppeteer:", err);
-        exit(1);
-      }
-      else {
-        console.log("Puppeteer exited successfully!");
-        setTimeout(() => startDataGen(config), config.dataGenWait);
-      }
-    }
-  );
+  // console.log("Starting Puppeteer in Headless Mode...");
+  // exec("npm run puppeteer",
+  //   {
+  //     cwd: analyzerPath,
+  //     env: {
+  //       ...process.env,
+  //       RENDER_TREE_PATH: path.resolve(),
+  //       RENDER_TREE_FILE: config.renderTreeFile,
+  //       ANALYZE_ROUTE: config.analyzeRoute,
+  //       REFRESH_CONN: config.refreshConnection,
+  //       BROWSER_HEADLESS: config.browserHeadless
+  //     },
+  //     shell: true
+  //   },
+  //   err => {
+  //     if(err) {
+  //       console.log("Failed to run Puppeteer:", err);
+  //       exit(1);
+  //     }
+  //     else {
+  //       console.log("Puppeteer exited successfully!");
+  //       setTimeout(() => startDataGen(config), config.dataGenWait);
+  //     }
+  //   }
+  // );
 }
 
 const startDataGen = (config) => {

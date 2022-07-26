@@ -1,5 +1,5 @@
 {
-  "name": "react-devtools",
+  "name": "component-analyzer",
   "version": "0.1.0",
   "description": "Use react-devtools outside of the browser",
   "license": "MIT",

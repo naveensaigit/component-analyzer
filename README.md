@@ -19,7 +19,7 @@ chmod +x install.sh
 Install `component-analyzer` as a dependency in your React repo
 ```sh
 cd /path/to/repo
-sudo npm link /path/to/component-analyzer # omit sudo if you Windows
+yarn link "component-analyzer"
 ```
 
 Add the following command to your `package.json` in the `scripts` section
