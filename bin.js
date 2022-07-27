@@ -11,7 +11,10 @@ const uiPath = path.join(__dirname, "advanced_bundle_analyzer_ui");
 const configStr =
 `{
   /* General */
+  "appStart": "npm start",                      /* Command to start webapp */
   "devToolsHeadless": true,                     /* Run DevTools in Headless mode */
+  "browserHeadless": true,                      /* Run Browser in Headless mode */
+  "devToolsDebug": false,                       /* Debug Log in DevTools */
 
   /* Render Tree */
   "renderTreeFile": "renderTree.json",          /* Name of the file containing information about render tree */
@@ -35,16 +38,17 @@ const runAnalyzer = (config) => {
   if(fs.existsSync(config.renderTreeFile))
     fs.unlinkSync(config.renderTreeFile);
 
-  // console.log("Starting webapp...\n");
-  // exec(config.appStart,
-  //   {
-  //     env: {
-  //       ...process.env,
-  //       BROWSER: 'none'
-  //     },
-  //     shell: true
-  //   }
-  // );
+  console.log("Starting webapp...\n");
+  console.log(config.appStart)
+  exec(config.appStart,
+    {
+      env: {
+        ...process.env,
+        BROWSER: 'none'
+      },
+      shell: true
+    }
+  );
 
   console.log("Starting DevTools in Headless Mode...");
   exec("npm run devtools",
@@ -56,6 +60,7 @@ const runAnalyzer = (config) => {
         RENDER_TREE_FILE: config.renderTreeFile,
         RENDER_TREE_WAIT: config.renderTreeWait,
         DEVTOOLS_HEADLESS: config.devToolsHeadless,
+        DEVTOOLS_DEBUG: config.devToolsDebug,
         UPDATE_FILTERS: config.updateFilters
       },
       shell: true
@@ -70,31 +75,31 @@ const runAnalyzer = (config) => {
     }
   );
 
-  // console.log("Starting Puppeteer in Headless Mode...");
-  // exec("npm run puppeteer",
-  //   {
-  //     cwd: analyzerPath,
-  //     env: {
-  //       ...process.env,
-  //       RENDER_TREE_PATH: path.resolve(),
-  //       RENDER_TREE_FILE: config.renderTreeFile,
-  //       ANALYZE_ROUTE: config.analyzeRoute,
-  //       REFRESH_CONN: config.refreshConnection,
-  //       BROWSER_HEADLESS: config.browserHeadless
-  //     },
-  //     shell: true
-  //   },
-  //   err => {
-  //     if(err) {
-  //       console.log("Failed to run Puppeteer:", err);
-  //       exit(1);
-  //     }
-  //     else {
-  //       console.log("Puppeteer exited successfully!");
-  //       setTimeout(() => startDataGen(config), config.dataGenWait);
-  //     }
-  //   }
-  // );
+  console.log("Starting Puppeteer in Headless Mode...");
+  exec("npm run puppeteer",
+    {
+      cwd: analyzerPath,
+      env: {
+        ...process.env,
+        RENDER_TREE_PATH: path.resolve(),
+        RENDER_TREE_FILE: config.renderTreeFile,
+        ANALYZE_ROUTE: config.analyzeRoute,
+        REFRESH_CONN: config.refreshConnection,
+        BROWSER_HEADLESS: config.browserHeadless
+      },
+      shell: true
+    },
+    err => {
+      if(err) {
+        console.log("Failed to run Puppeteer:", err);
+        exit(1);
+      }
+      else {
+        console.log("Puppeteer exited successfully!");
+        setTimeout(() => startDataGen(config), config.dataGenWait);
+      }
+    }
+  );
 }
 
 const startDataGen = (config) => {
@@ -135,7 +140,7 @@ fs.exists("analyzerConfig.json", exists => {
       let parsedConfigStr = fs.readFileSync("analyzerConfig.json").toString();
       let parsedConfig = strToConf(parsedConfigStr);
       for(let prop in parsedConfig)
-        if(config[prop])
+        if(config.hasOwnProperty(prop))
           config[prop] = parsedConfig[prop];
       console.log("Parsed config file successfully!");
     }
@@ -147,6 +152,8 @@ fs.exists("analyzerConfig.json", exists => {
   else {
     console.log("Config file not found. Creating a default config file");
     fs.writeFileSync("analyzerConfig.json", configStr);
+    console.log("Config file created. Make required changes and run `\x1B[1mnpm run analyze\x1B[0m` again");
+    exit(0);
   }
   runAnalyzer(config);
 });
