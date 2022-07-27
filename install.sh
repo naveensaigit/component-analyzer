@@ -24,7 +24,7 @@ else
 fi
 
 # Setup bundle analyzer UI
-cd ../advanced_bundle_analyzer_ui
+cd ../suggestions_ui
 yarn
 
 cd ..

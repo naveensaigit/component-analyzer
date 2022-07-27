@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const analyzerPath = path.join(__dirname, "advanced-bundle-analyzer");
-const uiPath = path.join(__dirname, "advanced_bundle_analyzer_ui");
+const uiPath = path.join(__dirname, "suggestions_ui");
 
 const configStr =
 `{
