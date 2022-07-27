@@ -39,7 +39,6 @@ const runAnalyzer = (config) => {
     fs.unlinkSync(config.renderTreeFile);
 
   console.log("Starting webapp...\n");
-  console.log(config.appStart)
   exec(config.appStart,
     {
       env: {
