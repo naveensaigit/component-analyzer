@@ -5,6 +5,9 @@ else
   sudo npm i -g yarn typescript
 fi
 
+# Install dependencies for pipeline
+yarn
+
 # Setup React DevTools
 cd react
 yarn

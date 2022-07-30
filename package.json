@@ -8,5 +8,9 @@
   },
   "scripts": {
     "start": "node bin.js"
+  },
+  "dependencies": {
+    "cross-spawn": "^7.0.3",
+    "react-dev-utils": "^12.0.1"
   }
 }
