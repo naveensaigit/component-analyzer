@@ -18,6 +18,7 @@ const configStr =
   "devToolsDebug": false,                       /* Debug Log in DevTools */
   "allowUserInteraction": false,                /* Allows user to interact with webpage */
   "extractKey": "Escape",                       /* Key that initiates render tree extraction */
+  "filterSuggestions": true,                    /* Filter suggestions to keep only functions returning JSX */
 
   /* Render Tree */
   "renderTreeFile": "renderTree.json",          /* Name of the file containing information about render tree */
@@ -99,7 +100,7 @@ const runAnalyzer = (config) => {
       shell: true
     }
   );
-  
+
   puppeteer.on("close", (code) => {
     if(code === 0) {
       console.log("Puppeteer exited successfully!");
@@ -117,7 +118,11 @@ const startDataGen = (config) => {
 
   console.log("\nPreparing data.json...\n")
   const dataGen = spawn("node", [`${dataGenPath}`, `${config.renderTreeFile}`, `${outputPath}`], {
-    stdio: "inherit"
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      FILTER: config.filterSuggestions
+    }
   });
 
   dataGen.on("close", code => {
