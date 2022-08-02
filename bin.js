@@ -50,7 +50,8 @@ const runAnalyzer = (config) => {
         ...process.env,
         BROWSER: 'none'
       },
-      shell: true
+      shell: true,
+      stdio: "inherit"
     }
   );
 
