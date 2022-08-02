@@ -167,7 +167,7 @@ fs.exists("analyzerConfig.json", exists => {
   else {
     console.log("Config file not found. Creating a default config file");
     fs.writeFileSync("analyzerConfig.json", configStr);
-    console.log("Config file created. Make required changes and run `\x1B[1mnpx component-analyzer\x1B[0m` again");
+    console.log("Config file created. Make required changes and run `\x1B[1mnpm run analyze\x1B[0m` again");
     exit(0);
   }
   runAnalyzer(config);
