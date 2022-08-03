@@ -6,9 +6,12 @@ const fs = require('fs');
 const path = require('path');
 const openBrowser = require('react-dev-utils/openBrowser');
 
+// Path of bundle analyzer directory
 const analyzerPath = path.join(__dirname, "advanced-bundle-analyzer");
+// Path of Next UI app
 const uiPath = path.join(__dirname, "suggestions_ui");
 
+// Default configuration
 const configStr =
 `{
   /* General */
@@ -34,29 +37,42 @@ const configStr =
   "openUI": true                                /* Opens Suggestion UI in browser */
 }`
 
+// Remove comments given a string
 const removeComments = (str) => str.replace(/([^:]\/\/.*|\/\*((.|\r\n|\s)*?)\*\/)/gm, "");
 
+// Convert string to config object
 const strToConf = (str) => JSON.parse(removeComments(str));
 
+// Main function to run the analyzer pipeline
 const runAnalyzer = (config) => {
+  // If the render tree file from previous run exists
   if(fs.existsSync(config.renderTreeFile))
+    // Delete the file
     fs.unlinkSync(config.renderTreeFile);
 
-  console.log("Starting webapp...\n");
-  const [appCmd, ...appArgs] = config.appStart.split(" ");
-  const appStart = spawn(appCmd, appArgs,
-    {
-      env: {
-        ...process.env,
-        BROWSER: 'none'
-      },
-      shell: true,
-      stdio: "inherit"
-    }
-  );
+  // If command to start the app is valid
+  if(config.appStart !== "") {
+    console.log("Starting webapp...\n");
+    // Start the app
+    const [appCmd, ...appArgs] = config.appStart.split(" ");
+    const appStart = spawn(appCmd, appArgs,
+      {
+        env: {
+          ...process.env,
+          // Disable React from automatically opening in the browser
+          BROWSER: 'none'
+        },
+        shell: true,
+        // Inherit the stdio to show output of build
+        stdio: "inherit"
+      }
+    );
+  }
 
+  // Using date to get a unique name for extract signal file
   const extractSignalFile = `${new Date().getTime()}.tmp`;
 
+  // Start DevTools
   console.log("Starting DevTools in Headless Mode...");
   const devtools = spawn("npm", ["run", "devtools"],
     {
@@ -83,6 +99,7 @@ const runAnalyzer = (config) => {
       console.log("DevTools exited successfully!");
   });
 
+  // Start Puppeteer
   console.log("Starting Puppeteer in Headless Mode...");
   const puppeteer = spawn("npm", ["run", "puppeteer"],
     {
@@ -105,6 +122,8 @@ const runAnalyzer = (config) => {
   puppeteer.on("close", (code) => {
     if(code === 0) {
       console.log("Puppeteer exited successfully!");
+      // Browser exited and render tree file successfully created
+      // Start the data generation process after desired timeout
       setTimeout(() => startDataGen(config), config.dataGenWait);
     }
     else {
@@ -113,10 +132,14 @@ const runAnalyzer = (config) => {
   });
 }
 
+// Data Generation Pipeline
 const startDataGen = (config) => {
+  // Path to the data generator file
   const dataGenPath = path.join(analyzerPath, "js-build/DataGenerator.js");
+  // Path of the output file
   const outputPath = path.join(uiPath, "src/components/data.json");
 
+  // Start preparing data.json
   console.log("\nPreparing data.json...\n")
   const dataGen = spawn("node", [`${dataGenPath}`, `${config.renderTreeFile}`, `${outputPath}`], {
     stdio: "inherit",
@@ -131,6 +154,7 @@ const startDataGen = (config) => {
       console.log("Failed to generate data.json:", code);
     }
     else {
+      // Data file successfully created. Start UI
       console.log("\ndata.json ready! Starting Suggestions UI...");
       const runUI = spawn("npm", ["run", "dev", "--", "-p", `${config.uiPort}`],
         {
@@ -141,6 +165,7 @@ const startDataGen = (config) => {
 
       setTimeout(() => {
         if(config.openUI)
+          // Use react utility function to open URL in existing tab (if open)
           openBrowser(`http://localhost:${config.uiPort}/browse`);
         console.log(`\nView suggestions for your webapp here: http://localhost:${config.uiPort}/browse`);
       }, 1000);
@@ -148,11 +173,15 @@ const startDataGen = (config) => {
   });
 }
 
+// Check if the config file exists
 fs.exists("analyzerConfig.json", exists => {
+  // Parse the default config string
   let config = strToConf(configStr);
 
   if(exists) {
+    // Config file exists
     try {
+      // Try parsing the file
       let parsedConfigStr = fs.readFileSync("analyzerConfig.json").toString();
       let parsedConfig = strToConf(parsedConfigStr);
       for(let prop in parsedConfig)
@@ -160,16 +189,19 @@ fs.exists("analyzerConfig.json", exists => {
           config[prop] = parsedConfig[prop];
       console.log("Parsed config file successfully!");
     }
+    // Failed to parse existing file
     catch(err) {
       console.log("Error parsing config file:", err);
       exit(1);
     }
   }
+  // Create a new config file with default options
   else {
     console.log("Config file not found. Creating a default config file");
     fs.writeFileSync("analyzerConfig.json", configStr);
     console.log("Config file created. Make required changes and run `\x1B[1mnpm run analyze\x1B[0m` again");
     exit(0);
   }
+  // Run the analyzer pipeline
   runAnalyzer(config);
 });
