@@ -73,7 +73,10 @@ const runAnalyzer = (config) => {
   const extractSignalFile = `${new Date().getTime()}.tmp`;
 
   // Start DevTools
-  console.log("Starting DevTools in Headless Mode...");
+  if(config.devToolsHeadless)
+    console.log("Starting DevTools in Headless Mode...");
+  else
+    console.log("Starting DevTools without Headless Mode...");
   const devtools = spawn("npm", ["run", "devtools"],
     {
       cwd: analyzerPath,
@@ -100,7 +103,11 @@ const runAnalyzer = (config) => {
   });
 
   // Start Puppeteer
-  console.log("Starting Puppeteer in Headless Mode...");
+  if(config.browserHeadless)
+    console.log("Starting Puppeteer in Headless Mode...");
+  else
+    console.log("Starting Puppeteer without Headless Mode...");
+  
   const puppeteer = spawn("npm", ["run", "puppeteer"],
     {
       cwd: analyzerPath,

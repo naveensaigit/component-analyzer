@@ -1,4 +1,4 @@
-## Component Analyzer
+## Smart Chunk Analyzer
 
 A tool that gives suggestions about which React components can be lazy loaded.
 
