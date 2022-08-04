@@ -6,7 +6,7 @@ A tool that gives suggestions about which React components can be lazy loaded.
 
 Clone the repo (along with submodules)
 ```sh
-git clone -b headless https://github.com/naveensaigit/component-analyzer --recurse-submodules
+git clone -b sprinklr https://github.com/naveensaigit/component-analyzer --recurse-submodules
 ```
 
 Install the dependencies for all the submodules
